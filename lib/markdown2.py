@@ -245,6 +245,7 @@ class Markdown(object):
         if "footnotes" in self.extras:
             self.footnotes = {}
             self.footnote_ids = []
+            self.inline_footnote_id = 0
         if "header-ids" in self.extras:
             self._count_from_header_id = {} # no `defaultdict` in Python 2.4
         if "metadata" in self.extras:
@@ -320,6 +321,7 @@ class Markdown(object):
             # looks like a link defn:
             #   [^4]: this "looks like a link defn"
             text = self._strip_footnote_definitions(text)
+            text = self._strip_inline_footnotes(text)
         text = self._strip_link_definitions(text)
 
         text = self._run_block_gamut(text)
@@ -773,6 +775,23 @@ class Markdown(object):
             re.X | re.M)
         return footnote_def_re.sub(self._extract_footnote_def_sub, text)
 
+    def _extract_inline_footnote_sub(self, match):
+        text = match.group(1).strip()
+        self.inline_footnote_id += 1
+        print(self.inline_footnote_id, match.span(), text)
+        # Ensure footnote text ends with a couple newlines (for some
+        # block gamut matches).
+        self.footnotes[str(self.inline_footnote_id)] = text + "\n\n"
+        # Transform it into [^id] so that it can be processed as markdown footnote.
+        return '[^%d]' % self.inline_footnote_id
+
+    def _strip_inline_footnotes(self, text):
+        """An inline footnote looks like this:
+
+            main text(^inline footnote)
+        """
+        _inline_footnote_re = re.compile(r'\(\^(.+?)\)')
+        return _inline_footnote_re.sub(self._extract_inline_footnote_sub, text)
 
     _hr_data = [
         ('*', re.compile(r"^[ ]{0,3}\*(.*?)$", re.M)),
