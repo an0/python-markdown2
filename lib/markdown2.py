@@ -778,7 +778,6 @@ class Markdown(object):
     def _extract_inline_footnote_sub(self, match):
         text = match.group(1).strip()
         self.inline_footnote_id += 1
-        print(self.inline_footnote_id, match.span(), text)
         # Ensure footnote text ends with a couple newlines (for some
         # block gamut matches).
         self.footnotes[str(self.inline_footnote_id)] = text + "\n\n"
