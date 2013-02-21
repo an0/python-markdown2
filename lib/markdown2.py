@@ -188,6 +188,7 @@ class Markdown(object):
     titles = None
     html_blocks = None
     html_spans = None
+    math_spans = None
     html_removed_text = "[HTML_REMOVED]"  # for compat with markdown.py
 
     # Used to track when we're inside an ordered or unordered list
@@ -240,6 +241,7 @@ class Markdown(object):
         self.titles = {}
         self.html_blocks = {}
         self.html_spans = {}
+        self.math_spans = {}
         self.list_level = 0
         self.extras = self._instance_extras.copy()
         if "footnotes" in self.extras:
@@ -309,6 +311,9 @@ class Markdown(object):
 
         text = self.preprocess(text)
 
+        if self.extras.get("math_delimiter"):
+            text = self._hash_math_spans(text)
+        
         if self.safe_mode:
             text = self._hash_html_spans(text)
 
@@ -336,6 +341,9 @@ class Markdown(object):
 
         if self.safe_mode:
             text = self._unhash_html_spans(text)
+
+        if self.extras.get("math_delimiter"):
+            text = self._unhash_math_spans(text)
 
         if "nofollow" in self.extras:
             text = self._a_nofollow.sub(r'<\1 rel="nofollow"\2', text)
@@ -1002,6 +1010,26 @@ class Markdown(object):
 
     def _unhash_html_spans(self, text):
         for key, sanitized in list(self.html_spans.items()):
+            text = text.replace(key, sanitized)
+        return text
+    
+    def _math_span_sub(self, match):
+        m = match.string[match.start():match.start(2)] + self._encode_code(match.group(2)) + match.string[match.end(2):match.end()]
+        key = _hash_text(m)
+        self.math_spans[key] = m
+        return key
+
+    def _hash_math_spans(self, text):
+        _math_span_re = re.compile(r'''
+                (?<!\\)
+                (%s)    # \1 = Opening delimiter
+                (.+?)   # \2 = The math span
+                \1      # Matching closer
+            ''' % re.escape(self.extras['math_delimiter']), re.X)
+        return _math_span_re.sub(self._math_span_sub, text)
+
+    def _unhash_math_spans(self, text):
+        for key, sanitized in list(self.math_spans.items()):
             text = text.replace(key, sanitized)
         return text
 
