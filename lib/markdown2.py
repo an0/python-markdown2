@@ -320,6 +320,10 @@ class Markdown(object):
         # Turn block-level HTML blocks into hash entries
         text = self._hash_html_blocks(text, raw=True)
 
+        if "fenced-code-blocks" in self.extras:
+            text = self._do_fenced_code_blocks(text)
+            text = self._hash_html_blocks(text)
+
         # Strip link definitions, store in hashes.
         if "footnotes" in self.extras:
             # Must do footnotes first because an unlucky footnote defn
@@ -810,12 +814,6 @@ class Markdown(object):
     def _run_block_gamut(self, text):
         # These are all the transformations that form block-level
         # tags like paragraphs, headers, and list items.
-
-        if "fenced-code-blocks" in self.extras:
-            text = self._do_fenced_code_blocks(text)
-            # We must do html block hash before _do_code_blocks because _do_fenced_code_blocks may produce indented code.
-            text = self._hash_html_blocks(text)
-
         text = self._do_headers(text)
 
         # Do Horizontal Rules:
@@ -843,7 +841,7 @@ class Markdown(object):
 
         text = self._do_block_quotes(text)
 
-        # We already ran _HashHTMLBlocks() before, in Markdown(), but that
+        # We already ran _hash_html_blocks() before, in Markdown(), but that
         # was to escape raw HTML in the original Markdown source. This time,
         # we're escaping the markup we've just created, so that we don't wrap
         # <p> tags around block-level tags.
@@ -1590,7 +1588,7 @@ class Markdown(object):
 
     # Rules for a code span:
     # - backslash escapes are not interpreted in a code span
-    # - to include one or or a run of more backticks the delimiters must
+    # - to include a run of more backticks the delimiters must
     #   be a longer run of backticks
     # - cannot start or end a code span with a backtick; pad with a
     #   space and that space will be removed in the emitted HTML
