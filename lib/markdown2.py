@@ -317,7 +317,7 @@ class Markdown(object):
 
         text = self.preprocess(text)
 
-        if "math_delimiter" in self.extras:
+        if self.extras.get("math_delimiter"):
             text = self._hash_math_spans(text)
         
         if "fenced-code-blocks" in self.extras and not self.safe_mode:
@@ -818,6 +818,10 @@ class Markdown(object):
     def _run_block_gamut(self, text):
         # These are all the transformations that form block-level
         # tags like paragraphs, headers, and list items.
+
+        if "fenced-code-blocks" in self.extras:
+            text = self._do_fenced_code_blocks(text)
+
         text = self._do_headers(text)
 
         # Do Horizontal Rules:
